@@ -1,0 +1,12 @@
+{
+  "port": 8787,
+  "market_interval_sec": 300,
+  "info_interval_sec": 1800,
+  "ohlcv_interval_sec": 900,
+  "move_threshold_pct": 20,
+  "live_move_pct": 25,
+  "liquidity_drop_pct": 25,
+  "holders_change_pct": 10,
+  "birdeye_api_key": "",
+  "open_browser": true
+}
