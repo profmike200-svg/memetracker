@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e1116">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Memetracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: una columna de tarjetas de coin, barra superior fija con el botón Update */
+:root {
+  --bg: #f4f5f7; --surface: #ffffff; --surface2: #eef0f4; --line: #dde1e8; --fg: #12151c; --muted: #5d6676;
+  --accent: #5b3df5; --accent-fg: #ffffff; --up: #0f9d58; --down: #d93a3a; --warn: #b7791f;
+  --up-bg: #e3f5ea; --down-bg: #fbe6e6; --warn-bg: #fbf0dc;
+  --display: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  --body: Inter, "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0e1116; --surface: #161a22; --surface2: #1d222c; --line: #2a303c; --fg: #e8ebf1; --muted: #8d96a8;
+  --accent: #8c74ff; --accent-fg: #0e1116; --up: #34d399; --down: #f87171; --warn: #fbbf24;
+  --up-bg: #10291f; --down-bg: #2e1517; --warn-bg: #2c2412; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0e1116; --surface: #161a22; --surface2: #1d222c; --line: #2a303c; --fg: #e8ebf1; --muted: #8d96a8;
+  --accent: #8c74ff; --accent-fg: #0e1116; --up: #34d399; --down: #f87171; --warn: #fbbf24;
+  --up-bg: #10291f; --down-bg: #2e1517; --warn-bg: #2c2412; color-scheme: dark; }
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--fg); font: 15px/1.45 var(--body); -webkit-text-size-adjust: 100%; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface); }
+.wrap { max-width: 760px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--surface); border-bottom: 1px solid var(--line); }
+header .wrap { display: flex; align-items: center; gap: 12px; padding-block: 12px; }
+h1 { font: 700 20px/1 var(--display); margin: 0; letter-spacing: -.2px; }
+h1 b { color: var(--accent); font-weight: 700; }
+.sub { color: var(--muted); font-size: 12px; margin-top: 3px; }
+button { font: 600 15px var(--body); border-radius: 10px; border: 1px solid transparent; padding: 10px 16px; cursor: pointer; color: var(--fg); background: var(--surface2); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); color: var(--accent-fg); }
+button.primary:disabled { opacity: .6; cursor: progress; }
+button.ghost { background: transparent; border-color: var(--line); font-weight: 500; padding: 7px 12px; font-size: 13px; }
+button.danger { background: var(--down-bg); color: var(--down); }
+#updateBtn { margin-left: auto; padding: 12px 20px; font-size: 16px; }
+.progress { height: 3px; background: transparent; }
+.progress i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .3s; }
+main { padding-block: 16px 48px; display: grid; gap: 14px; }
+form.add { display: flex; gap: 8px; }
+form.add input { flex: 1; min-width: 0; font: 14px var(--mono); padding: 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); }
+.msg { font-size: 13px; color: var(--muted); min-height: 18px; }
+.msg.err { color: var(--down); }
+.summary { display: flex; gap: 8px; flex-wrap: wrap; font-size: 13px; }
+.pill { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 999px; font-weight: 600; font-size: 12px; background: var(--surface2); color: var(--muted); white-space: nowrap; }
+.pill.up { background: var(--up-bg); color: var(--up); } .pill.down { background: var(--down-bg); color: var(--down); } .pill.warn { background: var(--warn-bg); color: var(--warn); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.card .top { display: grid; grid-template-columns: 40px 1fr auto; gap: 12px; align-items: center; padding: 14px; cursor: pointer; }
+.logo { width: 40px; height: 40px; border-radius: 50%; background: var(--surface2); object-fit: cover; display: flex; align-items: center; justify-content: center; font: 700 16px var(--display); color: var(--muted); }
+.name { min-width: 0; }
+.name b { font: 700 17px var(--display); }
+.name small { display: block; color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.price { text-align: right; font: 600 16px var(--mono); font-variant-numeric: tabular-nums; }
+.price small { display: block; font: 500 12px var(--body); }
+.verdict { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 0 14px 12px; font-size: 13px; color: var(--muted); }
+.deltas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--line); }
+.deltas > div { padding: 10px 14px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); min-width: 0; }
+.deltas > div:nth-child(3n) { border-right: 0; }
+.deltas .k { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .5px; }
+.deltas .v { font: 600 14px var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.deltas .d { font-size: 12px; font-weight: 600; }
+.up { color: var(--up); } .down { color: var(--down); } .muted { color: var(--muted); } .warn { color: var(--warn); }
+.reasons { padding: 10px 14px; display: flex; flex-wrap: wrap; gap: 6px; }
+.detail { border-top: 1px solid var(--line); padding: 12px 14px 14px; display: grid; gap: 12px; }
+[hidden] { display: none !important; }
+.spark { width: 100%; height: 70px; display: block; }
+.tbl { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+th, td { padding: 7px 6px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+th { color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: .4px; }
+th:first-child, td:first-child { text-align: left; }
+.links { display: flex; gap: 12px; flex-wrap: wrap; font-size: 13px; }
+a { color: var(--accent); }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.addr { font: 12px var(--mono); color: var(--muted); word-break: break-all; }
+.empty { text-align: center; color: var(--muted); padding: 36px 16px; background: var(--surface); border: 1px dashed var(--line); border-radius: 14px; }
+details.backup { font-size: 13px; color: var(--muted); }
+details.backup textarea { width: 100%; min-height: 90px; font: 12px var(--mono); background: var(--surface); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 8px; margin-top: 8px; }
+.foot { color: var(--muted); font-size: 12px; text-align: center; }
+@media (prefers-reduced-motion: reduce) { .progress i { transition: none; } }
+@media (max-width: 420px) { #updateBtn { padding: 11px 14px; } .deltas > div { padding: 9px 10px; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div><h1>Meme<b>tracker</b></h1><div class="sub" id="lastSweep">Sin chequeos todavía</div></div>
+    <button class="primary" id="updateBtn">↻ Update</button>
+  </div>
+  <div class="progress"><i id="bar"></i></div>
+</header>
+<main class="wrap">
+  <form class="add" id="addForm" autocomplete="off">
+    <input id="addr" placeholder="Pega la token address" aria-label="Token address">
+    <button class="primary" type="submit" id="addBtn">Añadir</button>
+  </form>
+  <div class="msg" id="msg"></div>
+  <div class="summary" id="summary"></div>
+  <div id="list"></div>
+  <details class="backup">
+    <summary>Copia de seguridad (los datos se guardan solo en este dispositivo)</summary>
+    <p>Copia este texto para pasar tus coins e histórico a otro móvil u ordenador, o pega aquí uno copiado y pulsa Importar.</p>
+    <textarea id="backupText" aria-label="Copia de seguridad"></textarea>
+    <div class="row"><button class="ghost" id="exportBtn" type="button">Copiar mis datos</button><button class="ghost" id="importBtn" type="button">Importar</button><span class="msg" id="backupMsg"></span></div>
+  </details>
+  <p class="foot">Datos de DexScreener y GeckoTerminal. Las valoraciones son automáticas, no son consejo de inversión.</p>
+</main>
+<script>
+const TZ = 'Europe/Madrid';
+const KEY = 'memetracker.v1';
+const API = { ds: 'https://api.dexscreener.com', gt: 'https://api.geckoterminal.com/api/v2' };
+const GT_NET = { ethereum: 'eth', polygon: 'polygon_pos', avalanche: 'avax', sui: 'sui-network', fantom: 'ftm', cronos: 'cro' };
+const CHAIN = { solana: 'Solana', ethereum: 'Ethereum', bsc: 'BNB Chain', base: 'Base', arbitrum: 'Arbitrum', polygon: 'Polygon', avalanche: 'Avalanche', sui: 'Sui', ton: 'TON', tron: 'Tron' };
+const MAX_HISTORY = 400;
+
+// ---------- estado
+let state = { tokens: [], lastSweep: null };
+const open = new Set();
+function load() { try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && Array.isArray(s.tokens)) state = s; } catch (e) { } }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { setMsg('No puedo guardar en este navegador (¿modo privado?). Los datos se perderán al cerrar.', true); } }
+
+// ---------- formato
+const fDate = new Intl.DateTimeFormat('es-ES', { timeZone: TZ, weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+const fShort = new Intl.DateTimeFormat('es-ES', { timeZone: TZ, day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+const when = t => t ? fDate.format(new Date(t)) : '—';
+const whenS = t => t ? fShort.format(new Date(t)) : '—';
+function ago(t) {
+  const s = (Date.now() - t) / 1000;
+  if (s < 90) return 'hace un momento';
+  if (s < 3600) return `hace ${Math.round(s / 60)} min`;
+  if (s < 86400) return `hace ${Math.round(s / 3600)} h`;
+  return `hace ${Math.round(s / 86400)} días`;
+}
+function usd(v) {
+  if (v == null || isNaN(v)) return '—';
+  return '$' + Intl.NumberFormat('en', { notation: Math.abs(v) >= 1000 ? 'compact' : 'standard', maximumFractionDigits: 2 }).format(v);
+}
+function price(v) {
+  if (v == null || isNaN(v)) return '—';
+  if (v >= 1) return '$' + v.toLocaleString('en', { maximumFractionDigits: 4 });
+  if (v <= 0) return '$0';
+  const s = Number(v.toPrecision(4)).toFixed(20).replace(/0+$/, '');
+  const m = /^0\.(0{3,})(\d+)$/.exec(s);
+  if (m) { const sub = '₀₁₂₃₄₅₆₇₈₉'; return `$0.0${String(m[1].length).split('').map(d => sub[d]).join('')}${m[2].slice(0, 4)}`; }
+  return '$' + Number(v.toPrecision(4));
+}
+const num = v => v == null ? '—' : Math.round(v).toLocaleString('es-ES');
+const pctTxt = (v, d = 1) => v == null || !isFinite(v) ? '—' : `${v >= 0 ? '+' : ''}${v.toFixed(d)}%`;
+const pctHtml = (v, d = 1) => v == null || !isFinite(v) ? '<span class="muted">—</span>' : `<span class="${v >= 0 ? 'up' : 'down'}">${pctTxt(v, d)}</span>`;
+const chg = (a, b) => (a == null || b == null || a === 0) ? null : (b / a - 1) * 100;
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const fnum = x => { const n = parseFloat(x); return isFinite(n) ? n : null; };
+
+function setMsg(t, err) { const m = document.getElementById('msg'); m.textContent = t || ''; m.className = 'msg' + (err ? ' err' : ''); }
+function setBar(p) { document.getElementById('bar').style.width = p == null ? '0' : (p * 100) + '%'; }
+
+// ---------- APIs
+async function getJSON(url) {
+  for (let i = 0; i < 3; i++) {
+    const r = await fetch(url, { headers: { Accept: 'application/json' } });
+    if (r.status === 429) { await sleep(2500 * (i + 1)); continue; }
+    if (r.status === 404) return null;
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.json();
+  }
+  throw new Error('Demasiadas peticiones, prueba en un minuto');
+}
+async function dexPairs(addresses) {
+  const out = [];
+  for (let i = 0; i < addresses.length; i += 30) {
+    const d = await getJSON(`${API.ds}/latest/dex/tokens/${addresses.slice(i, i + 30).join(',')}`);
+    out.push(...((d && d.pairs) || []));
+  }
+  return out;
+}
+function bestPair(pairs, address, chain) {
+  const a = address.toLowerCase();
+  const c = pairs.filter(p => (p.baseToken?.address || '').toLowerCase() === a && (!chain || p.chainId === chain));
+  c.sort((x, y) => (y.liquidity?.usd || 0) - (x.liquidity?.usd || 0));
+  return { best: c[0] || null, all: c };
+}
+function snapFromPairs(best, all) {
+  const tx = best.txns || {}, vol = best.volume || {}, ch = best.priceChange || {};
+  return {
+    t: Date.now(),
+    price: fnum(best.priceUsd),
+    mcap: fnum(best.marketCap) ?? fnum(best.fdv),
+    liq: all.reduce((s, p) => s + (p.liquidity?.usd || 0), 0) || null,
+    vol24: all.reduce((s, p) => s + (p.volume?.h24 || 0), 0) || null,
+    vol1: fnum(vol.h1),
+    buys24: tx.h24?.buys ?? null, sells24: tx.h24?.sells ?? null,
+    buys1: tx.h1?.buys ?? null, sells1: tx.h1?.sells ?? null,
+    ch1: fnum(ch.h1), ch24: fnum(ch.h24),
+    holders: null,
+  };
+}
+async function gtHolders(tok) {
+  const net = GT_NET[tok.chain] || tok.chain;
+  try {
+    const d = await getJSON(`${API.gt}/networks/${net}/tokens/${tok.address}/info`);
+    const h = d?.data?.attributes?.holders;
+    return { holders: h?.count != null ? Number(h.count) : null, top10: fnum(h?.distribution_percentage?.top_10) };
+  } catch (e) { return { holders: null, top10: null }; }
+}
+
+// ---------- comparación
+function compare(prev, cur) {
+  if (!prev) return null;
+  const d = {
+    price: chg(prev.price, cur.price), mcap: chg(prev.mcap, cur.mcap), liq: chg(prev.liq, cur.liq),
+    vol24: chg(prev.vol24, cur.vol24), holders: chg(prev.holders, cur.holders),
+  };
+  const br = s => (s.buys24 + s.sells24) ? s.buys24 / (s.buys24 + s.sells24) * 100 : null;
+  const b0 = br(prev), b1 = br(cur);
+  d.buyRatio = b1; d.buyRatioDelta = (b0 != null && b1 != null) ? b1 - b0 : null;
+  const reasons = [];
+  let score = 0;
+  const add = (v, w, label, th = 3) => {
+    if (v == null) return;
+    const capped = Math.max(-100, Math.min(100, v));
+    score += capped * w;
+    if (Math.abs(v) >= th) reasons.push({ text: `${label} ${pctTxt(v, 0)}`, cls: v > 0 ? 'up' : 'down' });
+  };
+  add(d.price, 1, 'Precio');
+  add(d.liq, 0.8, 'Liquidez', 5);
+  add(d.holders, 3, 'Holders', 1);
+  add(d.vol24, 0.15, 'Volumen 24h', 15);
+  if (d.buyRatioDelta != null) { score += d.buyRatioDelta * 0.5; if (Math.abs(d.buyRatioDelta) >= 3) reasons.push({ text: `Compras ${d.buyRatioDelta > 0 ? '+' : ''}${d.buyRatioDelta.toFixed(0)} pts`, cls: d.buyRatioDelta > 0 ? 'up' : 'down' }); }
+  if (d.liq != null && d.liq <= -25) reasons.unshift({ text: '⚠ Están sacando liquidez', cls: 'down' });
+  if (d.holders != null && d.holders <= -5) reasons.unshift({ text: '⚠ Se van holders', cls: 'down' });
+  let label, cls;
+  if (score >= 25) { label = 'Evoluciona fuerte'; cls = 'up'; }
+  else if (score >= 5) { label = 'Evoluciona'; cls = 'up'; }
+  else if (score <= -25) { label = 'Involuciona fuerte'; cls = 'down'; }
+  else if (score <= -5) { label = 'Involuciona'; cls = 'down'; }
+  else { label = 'Estable'; cls = 'warn'; }
+  return { d, reasons, score, label, cls, since: prev.t };
+}
+
+// ---------- acciones
+async function addToken(address) {
+  address = address.trim();
+  if (!address) return;
+  if (state.tokens.some(t => t.address.toLowerCase() === address.toLowerCase())) { setMsg('Esa coin ya está en tu lista.', true); return; }
+  setMsg('Buscando el token…');
+  const pairs = await dexPairs([address]);
+  const { best, all } = bestPair(pairs, address);
+  if (!best) { setMsg('No encuentro ese token en DexScreener. Revisa la dirección: tiene que tener algún par con liquidez.', true); return; }
+  const tok = {
+    address: best.baseToken.address, chain: best.chainId, symbol: best.baseToken.symbol, name: best.baseToken.name,
+    image: best.info?.imageUrl || null, url: best.url, pairAddress: best.pairAddress, addedAt: Date.now(), history: [],
+  };
+  const snap = snapFromPairs(best, all);
+  setMsg('Contando holders…');
+  Object.assign(snap, await gtHolders(tok));
+  tok.history.push(snap);
+  state.tokens.unshift(tok);
+  save();
+  open.add(tok.address);
+  setMsg(`${tok.symbol} añadida (${CHAIN[tok.chain] || tok.chain}). Pulsa Update cuando quieras ver cómo evoluciona.`);
+  render();
+}
+
+let sweeping = false;
+async function sweep() {
+  if (sweeping || !state.tokens.length) { if (!state.tokens.length) setMsg('Añade alguna coin primero.', true); return; }
+  sweeping = true;
+  const btn = document.getElementById('updateBtn');
+  btn.disabled = true; btn.textContent = 'Revisando…';
+  const n = state.tokens.length;
+  try {
+    setBar(0.05); setMsg('Descargando precios, liquidez y volumen…');
+    const pairs = await dexPairs(state.tokens.map(t => t.address));
+    setBar(0.2);
+    let i = 0, missing = [];
+    for (const tok of state.tokens) {
+      i++;
+      const { best, all } = bestPair(pairs, tok.address, tok.chain);
+      if (!best) { missing.push(tok.symbol); continue; }
+      const snap = snapFromPairs(best, all);
+      setMsg(`Contando holders ${i}/${n} (${tok.symbol})…`);
+      Object.assign(snap, await gtHolders(tok));
+      if (snap.holders == null) { const lh = [...tok.history].reverse().find(h => h.holders != null); if (lh) snap.holdersCarried = true; }
+      if (best.info?.imageUrl) tok.image = best.info.imageUrl;
+      tok.pairAddress = best.pairAddress; tok.url = best.url;
+      tok.history.push(snap);
+      if (tok.history.length > MAX_HISTORY) tok.history.splice(1, tok.history.length - MAX_HISTORY);
+      save(); render();
+      setBar(0.2 + 0.8 * i / n);
+      if (i < n) await sleep(2100); // GeckoTerminal admite ~30 peticiones/min
+    }
+    state.lastSweep = Date.now(); save();
+    setMsg(missing.length ? `Revisadas. Sin datos ahora mismo para: ${missing.join(', ')}.` : `Revisadas ${n} coins.`);
+  } catch (e) {
+    setMsg(`No he podido completar la revisión: ${e.message}. Comprueba la conexión y vuelve a pulsar Update.`, true);
+  } finally {
+    sweeping = false; btn.disabled = false; btn.textContent = '↻ Update'; setBar(null); render();
+  }
+}
+
+// ---------- render
+function sparkSVG(hist) {
+  const pts = hist.filter(h => h.price != null);
+  if (pts.length < 2) return '<p class="muted" style="font-size:13px;margin:0">La gráfica aparece a partir del segundo chequeo.</p>';
+  const W = 600, H = 70, P = 4;
+  const t0 = pts[0].t, t1 = pts[pts.length - 1].t, mn = Math.min(...pts.map(p => p.price)), mx = Math.max(...pts.map(p => p.price));
+  const x = t => P + (t - t0) / ((t1 - t0) || 1) * (W - 2 * P), y = v => H - P - (v - mn) / ((mx - mn) || 1) * (H - 2 * P);
+  const d = pts.map((p, i) => `${i ? 'L' : 'M'}${x(p.t).toFixed(1)},${y(p.price).toFixed(1)}`).join('');
+  const up = pts[pts.length - 1].price >= pts[0].price;
+  const col = up ? 'var(--up)' : 'var(--down)';
+  const last = pts[pts.length - 1];
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Precio en cada chequeo">
+    <path d="${d}L${x(t1)},${H}L${x(t0)},${H}Z" fill="${col}" fill-opacity=".12" stroke="none"/>
+    <path d="${d}" fill="none" stroke="${col}" stroke-width="2" vector-effect="non-scaling-stroke"/>
+    <circle cx="${x(last.t)}" cy="${y(last.price)}" r="3.5" fill="${col}"/></svg>`;
+}
+
+function logo(t) {
+  const ph = `<div class="logo">${esc((t.symbol || '?')[0])}</div>`;
+  return t.image ? `<img class="logo" src="${esc(t.image)}" alt="" onerror="this.outerHTML='${ph.replace(/"/g, '&quot;')}'">` : ph;
+}
+
+function cell(k, v, d) { return `<div><div class="k">${k}</div><div class="v">${v}</div><div class="d">${d}</div></div>`; }
+
+function card(t) {
+  const h = t.history, cur = h[h.length - 1], prev = h.length > 1 ? h[h.length - 2] : null, first = h[0];
+  const cmp = compare(prev, cur);
+  const isOpen = open.has(t.address);
+  const lastHolders = [...h].reverse().find(x => x.holders != null);
+  const br = (cur.buys24 + cur.sells24) ? cur.buys24 / (cur.buys24 + cur.sells24) * 100 : null;
+  const verdict = cmp
+    ? `<span class="pill ${cmp.cls}">${cmp.cls === 'up' ? '▲' : cmp.cls === 'down' ? '▼' : '■'} ${cmp.label}</span><span>vs chequeo del ${whenS(cmp.since)}</span>`
+    : `<span class="pill">Primer chequeo</span><span>${when(cur.t)}</span>`;
+  const rows = [...h].reverse().map((s, i, arr) => {
+    const p = arr[i + 1];
+    return `<tr><td>${when(s.t)}</td><td>${price(s.price)}</td><td>${p ? pctHtml(chg(p.price, s.price)) : '<span class="muted">—</span>'}</td><td>${usd(s.mcap)}</td><td>${usd(s.liq)}</td><td>${usd(s.vol24)}</td><td>${num(s.holders)}</td></tr>`;
+  }).join('');
+  const gtNet = GT_NET[t.chain] || t.chain;
+  return `<article class="card" data-addr="${esc(t.address)}">
+    <div class="top" data-toggle>
+      ${logo(t)}
+      <div class="name"><b>${esc(t.symbol)}</b><small>${esc(t.name)} · ${esc(CHAIN[t.chain] || t.chain)}</small></div>
+      <div class="price">${price(cur.price)}<small>${cmp ? pctHtml(cmp.d.price) : pctHtml(cur.ch24) + ' <span class="muted">24h</span>'}</small></div>
+    </div>
+    <div class="verdict">${verdict}</div>
+    <div class="deltas">
+      ${cell('Market cap', usd(cur.mcap), cmp ? pctHtml(cmp.d.mcap) : '')}
+      ${cell('Liquidez', usd(cur.liq), cmp ? pctHtml(cmp.d.liq) : '')}
+      ${cell('Holders', num(cur.holders ?? lastHolders?.holders), cmp ? pctHtml(cmp.d.holders, 2) : '')}
+      ${cell('Volumen 24h', usd(cur.vol24), cmp ? pctHtml(cmp.d.vol24) : '')}
+      ${cell('Compras 24h', br == null ? '—' : br.toFixed(0) + '%', cmp && cmp.d.buyRatioDelta != null ? `<span class="${cmp.d.buyRatioDelta >= 0 ? 'up' : 'down'}">${cmp.d.buyRatioDelta >= 0 ? '+' : ''}${cmp.d.buyRatioDelta.toFixed(1)} pts</span>` : '')}
+      ${cell('Desde que la añadí', pctHtml(chg(first.price, cur.price)), `<span class="muted">${whenS(first.t)}</span>`)}
+    </div>
+    ${cmp && cmp.reasons.length ? `<div class="reasons">${cmp.reasons.map(r => `<span class="pill ${r.cls}">${esc(r.text)}</span>`).join('')}</div>` : ''}
+    <div class="detail" ${isOpen ? '' : 'hidden'}>
+      ${sparkSVG(h)}
+      <div class="muted" style="font-size:13px">Ahora mismo: 1h ${pctHtml(cur.ch1)} · 24h ${pctHtml(cur.ch24)}${cur.top10 != null ? ` · top 10 holders ${cur.top10.toFixed(1)}%` : ''}</div>
+      <div class="tbl"><table><thead><tr><th>Chequeo (Madrid)</th><th>Precio</th><th>Δ</th><th>Mcap</th><th>Liquidez</th><th>Vol 24h</th><th>Holders</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <div class="addr">${esc(t.address)}</div>
+      <div class="links">
+        ${t.url ? `<a href="${esc(t.url)}" target="_blank" rel="noopener">DexScreener</a>` : ''}
+        ${t.pairAddress ? `<a href="https://www.geckoterminal.com/${esc(gtNet)}/pools/${esc(t.pairAddress)}" target="_blank" rel="noopener">GeckoTerminal</a>` : ''}
+        ${t.chain === 'solana' ? `<a href="https://rugcheck.xyz/tokens/${esc(t.address)}" target="_blank" rel="noopener">RugCheck</a>` : ''}
+      </div>
+      <div class="row"><button class="ghost" data-copy>Copiar address</button><button class="ghost" data-del>Quitar de la lista</button>
+        <span data-confirm hidden class="row"><span class="muted" style="font-size:13px">¿Borrar ${esc(t.symbol)} y su histórico?</span><button class="danger" data-del-yes>Sí, borrar</button><button class="ghost" data-del-no>No</button></span></div>
+    </div>
+  </article>`;
+}
+
+function render() {
+  const list = document.getElementById('list');
+  document.getElementById('lastSweep').textContent = state.lastSweep ? `Último Update: ${when(state.lastSweep)} (${ago(state.lastSweep)})` : 'Sin chequeos todavía';
+  if (!state.tokens.length) {
+    list.innerHTML = `<div class="empty"><b>Tu lista está vacía</b><br>Pega arriba la token address de una memecoin (Solana, Ethereum, Base, BSC…) y pulsa Añadir.<br>Cada vez que pulses <b>Update</b> se revisan todas y verás si evolucionan o involucionan desde el último chequeo.</div>`;
+    document.getElementById('summary').innerHTML = '';
+    return;
+  }
+  list.style.display = 'grid'; list.style.gap = '14px';
+  list.innerHTML = state.tokens.map(card).join('');
+  const cnt = { up: 0, down: 0, warn: 0 };
+  state.tokens.forEach(t => { const h = t.history; const c = compare(h[h.length - 2], h[h.length - 1]); if (c) cnt[c.cls]++; });
+  document.getElementById('summary').innerHTML = `<span class="pill">${state.tokens.length} coins</span>` +
+    (cnt.up ? `<span class="pill up">▲ ${cnt.up} evolucionan</span>` : '') + (cnt.down ? `<span class="pill down">▼ ${cnt.down} involucionan</span>` : '') + (cnt.warn ? `<span class="pill warn">■ ${cnt.warn} estables</span>` : '');
+}
+
+document.getElementById('list').addEventListener('click', async e => {
+  const art = e.target.closest('article'); if (!art) return;
+  const addr = art.dataset.addr;
+  if (e.target.closest('[data-toggle]')) { open.has(addr) ? open.delete(addr) : open.add(addr); render(); return; }
+  if (e.target.closest('[data-copy]')) { const b = e.target.closest('[data-copy]'); try { await navigator.clipboard.writeText(addr); b.textContent = 'Copiada ✓'; } catch (err) { const s = getSelection(), r = document.createRange(); r.selectNodeContents(art.querySelector('.addr')); s.removeAllRanges(); s.addRange(r); } return; }
+  if (e.target.closest('[data-del]')) { art.querySelector('[data-confirm]').hidden = false; return; }
+  if (e.target.closest('[data-del-no]')) { art.querySelector('[data-confirm]').hidden = true; return; }
+  if (e.target.closest('[data-del-yes]')) { state.tokens = state.tokens.filter(t => t.address !== addr); save(); render(); }
+});
+document.getElementById('addForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const inp = document.getElementById('addr'), btn = document.getElementById('addBtn');
+  btn.disabled = true;
+  try { await addToken(inp.value); if (!document.getElementById('msg').classList.contains('err')) inp.value = ''; }
+  catch (err) { setMsg(`No he podido consultar DexScreener: ${err.message}. Revisa la conexión.`, true); }
+  finally { btn.disabled = false; }
+});
+document.getElementById('updateBtn').addEventListener('click', sweep);
+document.getElementById('exportBtn').addEventListener('click', async () => {
+  const ta = document.getElementById('backupText'), m = document.getElementById('backupMsg');
+  ta.value = JSON.stringify(state);
+  try { await navigator.clipboard.writeText(ta.value); m.textContent = 'Copiado al portapapeles ✓'; } catch (e) { ta.select(); m.textContent = 'Texto seleccionado: cópialo a mano.'; }
+});
+document.getElementById('importBtn').addEventListener('click', () => {
+  const m = document.getElementById('backupMsg');
+  try {
+    const s = JSON.parse(document.getElementById('backupText').value);
+    if (!s || !Array.isArray(s.tokens)) throw new Error();
+    const have = new Set(state.tokens.map(t => t.address.toLowerCase()));
+    s.tokens.forEach(t => { if (!have.has(t.address.toLowerCase())) state.tokens.push(t); });
+    state.lastSweep = Math.max(state.lastSweep || 0, s.lastSweep || 0) || null;
+    save(); render(); m.textContent = `Importadas ✓ (${s.tokens.length} coins)`;
+  } catch (e) { m.textContent = 'Ese texto no es una copia válida.'; }
+});
+load(); render();
+setInterval(() => { if (!sweeping) document.getElementById('lastSweep').textContent = state.lastSweep ? `Último Update: ${when(state.lastSweep)} (${ago(state.lastSweep)})` : 'Sin chequeos todavía'; }, 60000);
+</script>
+</body>
+</html>
